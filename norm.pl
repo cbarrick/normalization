@@ -144,7 +144,7 @@ write_bcnf_decomp_indent_(Depth) :-
 %! synthesize(+F, -Tables)
 % Generates a schema using 3NF synthesis with respect to the functional
 % dependencies in `F`.
-synthesize(F, Tables) :-
+synthesize(F, Tables, plan(Cover, InitialTables, Key, Tables)) :-
 	once(cover(F, Cover)),
 	flatten_fds(Cover, R),
 	findall(XY, (
@@ -160,11 +160,21 @@ synthesize(F, Tables) :-
 		member(Superkey, InitialTables),
 		closure(Superkey, Cover, Closure),
 		Closure = R,
+		Key = Superkey,
 		Tables = InitialTables
 	->true;
 		once(key(R, Cover, Key)),
 		sort([Key|InitialTables], Tables)
 	).
+
+
+%! write_synthesis(+Plan)
+%
+write_synthesis(plan(Cover, InitialTables, Key, Tables)) :-
+	format("Minimal cover:\n\t~w\n", [Cover]),
+	format("Initial Tables:\n\t~w\n", [InitialTables]),
+	format("Global Key:\n\t~w\n", [Key]),
+	format("Tables:\n\t~w\n", [Tables]).
 
 
 %! main(X)
@@ -176,6 +186,14 @@ main :-
 		[cid] -> [commenttext, commenttime, uid, pid]
 	],
 
-	synthesize(F, Synth),
-	format('3NF Synthesis: ~w\n', [Synth]),
+	bcnf_decomp(F, Decomp, DecompPlan),
+	format("BCNF Decomp:\n"),
+	write_bcnf_decomp(DecompPlan),
+	format("Result: ~w\n", [Decomp]),
+
+	nl,
+
+	synthesize(F, Synth, SynthPlan),
+	format("3NF Synthesis:\n", [Synth]),
+	write_synthesis(SynthPlan),
 	!.
