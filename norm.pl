@@ -146,9 +146,10 @@ synthesize(F, Tables) :-
 main :-
 	F = [
 		[uid] -> [role, email, password],
-		[pid] -> [posttitle, posttext, posttime],
-		[cid] -> [commenttext, commenttime]
+		[pid] -> [posttitle, posttext, posttime, uid],
+		[cid] -> [commenttext, commenttime, uid, pid]
 	],
+
 	bcnf_decomp(F, Decomp),
 	format('BCNF Decomp: ~w\n', [Decomp]),
 	synthesize(F, Synth),
