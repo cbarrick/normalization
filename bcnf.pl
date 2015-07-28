@@ -71,11 +71,12 @@ bcnf(R, F) :-
 
 
 %! bcnf_decomp(+F, -Decomp)
-% Generates a BCNF decomposition given the functional dependencies in `F`.
+% Generates a schema using BCNF decomposition with respect to the functional
+% dependencies in `F`.
 bcnf_decomp(F, Decomp) :-
 	% a minimal cover isn't strictly needed, but the generated cover is
 	% guaranteed to be sorted, so we can use ordered set operations.
-	cover(F, Cover),
+	once(cover(F, Cover)),
 	flatten_fds(Cover, R),
 	bcnf_decomp_(R, Cover, Decomp).
 
