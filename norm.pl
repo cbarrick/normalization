@@ -59,18 +59,16 @@ closure(Attrs, _, Attrs).
 
 
 %! key(+Attrs, +F, -Key)
-% True when `Key` functionally determines `Attrs` with respect to the functional
-% dependencies `F`.
-key(R, F, [X]) :-
-	member(X, R),
-	closure([X], F, Closure),
-	Closure == R.
+% True when `Key` is a key for the attributes `Attrs` with respect to the
+% functional dependencies `F`.
+key(Attrs, F, Key) :-
+	select(_, Attrs, Rest),
+	closure(Rest, F, Closure),
+	ord_subset(Attrs, Closure),
+	!,
+	key(Rest, F, Key).
 
-key(R, F, [X|Key]) :-
-	member(X, R),
-	closure([X], F, Closure),
-	ord_subtract(R, Closure, Next),
-	key(Next, F, Key).
+key(Attrs, _, Attrs).
 
 
 %! bcnf(+R, +F)
