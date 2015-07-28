@@ -141,10 +141,11 @@ write_bcnf_decomp_indent_(Depth) :-
 
 
 
-%! synthesize(+F, -Tables)
+%! synthesis(+F, -Tables, -Plan)
 % Generates a schema using 3NF synthesis with respect to the functional
-% dependencies in `F`.
-synthesize(F, Tables, plan(Cover, InitialTables, Key, Tables)) :-
+% dependencies in `F`. `Plan` is a compound describing the synthesis
+% process. Use `write_synthesis/1` to write the plan in a human format.
+synthesis(F, Tables, plan(Cover, InitialTables, Key, Tables)) :-
 	once(cover(F, Cover)),
 	flatten_fds(Cover, R),
 	findall(XY, (
@@ -169,7 +170,7 @@ synthesize(F, Tables, plan(Cover, InitialTables, Key, Tables)) :-
 
 
 %! write_synthesis(+Plan)
-%
+% Write the 3NF synthesis plan in a human format.
 write_synthesis(plan(Cover, InitialTables, Key, Tables)) :-
 	format("Minimal cover:\n\t~w\n", [Cover]),
 	format("Initial Tables:\n\t~w\n", [InitialTables]),
@@ -193,7 +194,7 @@ main :-
 
 	nl,
 
-	synthesize(F, Synth, SynthPlan),
+	synthesis(F, Synth, SynthPlan),
 	format("3NF Synthesis:\n", [Synth]),
 	write_synthesis(SynthPlan),
 	!.
