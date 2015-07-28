@@ -22,9 +22,9 @@ Result: [[cid,commenttext,commenttime,pid],[cid,posttext,posttime,posttitle,uid]
 Minimal cover:
 	[ ([cid]->[commenttext,commenttime,pid]), ([pid]->[posttext,posttime,posttitle]), ([uid]->[email,password,role])]
 Initial Tables:
-	[[role,email,password,uid],[pid,posttitle,posttext,posttime,uid],[cid,commenttext,commenttime,uid,pid]]
+	[[cid,commenttext,commenttime,pid],[pid,posttext,posttime,posttitle],[email,password,role,uid]]
 Global Key:
 	[cid,uid]
 Tables:
-	[[cid,commenttext,commenttime,uid,pid],[cid,uid],[pid,posttitle,posttext,posttime,uid],[role,email,password,uid]]
+	[[cid,commenttext,commenttime,pid],[cid,uid],[email,password,role,uid],[pid,posttext,posttime,posttitle]]
 ```

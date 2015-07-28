@@ -149,7 +149,7 @@ synthesis(F, Tables, plan(Cover, InitialTables, Key, Tables)) :-
 	once(cover(F, Cover)),
 	flatten_fds(Cover, R),
 	findall(XY, (
-		select(X->Y, F, Rest),
+		select(X->Y, Cover, Rest),
 		ord_union(X, Y, XY),
 		\+ (
 			member(X1->Y1, Rest),
