@@ -1,4 +1,7 @@
+#!/usr/bin/env swipl -g main -t halt
+
 :- use_module(library(ordsets)).
+
 
 %! cover(+F, -Cover)
 % Generates a normalized minimal cover of the functional dependencies `F`.
