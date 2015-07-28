@@ -7,24 +7,23 @@ The `main` predicate normalizes a simple database for a blog application that so
 
 Example output:
 ```sh
-$ ./norm.pl
-BCNF Decomp:
+$ BCNF Decomp:
 - table: [cid,commenttext,commenttime,email,password,pid,posttext,posttime,posttitle,role,uid]
-  - violation: [cid] -> [commenttext,commenttime,pid]
-  - table: [cid,commenttext,commenttime,pid]
-  - table: [cid,email,password,posttext,posttime,posttitle,role,uid]
-    - violation: [uid] -> [email,password,role]
+  - violation: [pid] -> [email,password,pid,posttext,posttime,posttitle,role,uid]
+  - table: [email,password,pid,posttext,posttime,posttitle,role,uid]
+    - violation: [uid] -> [email,password,role,uid]
     - table: [email,password,role,uid]
-    - table: [cid,posttext,posttime,posttitle,uid]
-Result: [[cid,commenttext,commenttime,pid],[cid,posttext,posttime,posttitle,uid],[email,password,role,uid]]
+    - table: [pid,posttext,posttime,posttitle,uid]
+  - table: [cid,commenttext,commenttime,pid]
+Result: [[cid,commenttext,commenttime,pid],[email,password,role,uid],[pid,posttext,posttime,posttitle,uid]]
 
 3NF Synthesis:
 Minimal cover:
-	[ ([cid]->[commenttext,commenttime,pid]), ([pid]->[posttext,posttime,posttitle]), ([uid]->[email,password,role])]
+	[ ([cid]->[commenttext,commenttime,pid,uid]), ([pid]->[posttext,posttime,posttitle,uid]), ([uid]->[email,password,role])]
 Initial Tables:
-	[[cid,commenttext,commenttime,pid],[pid,posttext,posttime,posttitle],[email,password,role,uid]]
+	[[cid,commenttext,commenttime,pid,uid],[pid,posttext,posttime,posttitle,uid],[email,password,role,uid]]
 Global Key:
-	[cid,uid]
+	[cid,commenttext,commenttime,pid,uid]
 Tables:
-	[[cid,commenttext,commenttime,pid],[cid,uid],[email,password,role,uid],[pid,posttext,posttime,posttitle]]
+	[[cid,commenttext,commenttime,pid,uid],[pid,posttext,posttime,posttitle,uid],[email,password,role,uid]]
 ```

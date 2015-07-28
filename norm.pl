@@ -21,11 +21,12 @@ cover(F, Minimal) :-
 	% eliminate extraneous rules
 	findall(X->[Y], (
 		select(X->[Y], Singleton, Rest),
-		ord_union(X, [Y], XY),
+		closure(X, F, XClose),
 		\+ (
 			member(Key->_, Rest),
-			closure(Key, Rest, Closure),
-			ord_subset(XY, Closure)
+			ord_subset(Key, XClose),
+			closure(Key, Rest, KClose),
+			ord_subset(XClose, KClose)
 		)
 	), MinimalSingleton),
 
@@ -102,15 +103,16 @@ bcnf_decomp_([X], _, [[X]], plan([X])) :- !.
 bcnf_decomp_([X,Y], _, [[X,Y]], plan([X,Y])) :- !.
 bcnf_decomp_(R, F, [R], plan(R)) :- bcnf(R, F), !.
 bcnf_decomp_(R, F, Decomp, plan(R, X->Y, Plan0, Plan1)) :-
-	member(X->Y, F),
+	member(X->_, F),
+	closure(X, F, Y),
 	ord_subset(X, R),
 	ord_intersection(Y, R, YPrime),
 	YPrime \= [],
 	closure(X, F, XClose),
 	\+ ord_subset(R, XClose),
 	ord_union([X, YPrime], XY),
-	ord_subtract(R, Y, RMinusY),
-	debug(bcnf_decomp, "splitting ~w on ~w: ~w", [R, X->Y, [XY,RMinusY]]),
+	ord_subtract(Y, X, YMinusX),
+	ord_subtract(R, YMinusX, RMinusY),
 	bcnf_decomp_(XY, F, D0, Plan0),
 	bcnf_decomp_(RMinusY, F, D1, Plan1),
 	ord_union(D0, D1, Decomp).
