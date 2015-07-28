@@ -86,21 +86,22 @@ bcnf(R, F) :-
 	)).
 
 
-%! bcnf_decomp(+F, -Decomp)
+%! bcnf_decomp(+F, -Decomp, -Plan)
 % Generates a schema using BCNF decomposition with respect to the functional
-% dependencies in `F`.
-bcnf_decomp(F, Decomp) :-
+% dependencies in `F`. `Plan` is a compound describing the decomposition
+% process. Use `write_bcnf_decomp/1` to write the plan in a human format.
+bcnf_decomp(F, Decomp, Plan) :-
 	% a minimal cover isn't strictly needed, but the generated cover is
 	% guaranteed to be sorted, so we can use ordered set operations.
 	once(cover(F, Cover)),
 	flatten_fds(Cover, R),
-	bcnf_decomp_(R, Cover, Decomp).
+	bcnf_decomp_(R, Cover, Decomp, Plan).
 
-bcnf_decomp_([], _, [[]]) :- !.
-bcnf_decomp_([X], _, [[X]]) :- !.
-bcnf_decomp_([X,Y], _, [[X,Y]]) :- !.
-bcnf_decomp_(R, F, [R]) :- bcnf(R, F), !.
-bcnf_decomp_(R, F, Decomp) :-
+bcnf_decomp_([], _, [[]], plan([])) :- !.
+bcnf_decomp_([X], _, [[X]], plan([X])) :- !.
+bcnf_decomp_([X,Y], _, [[X,Y]], plan([X,Y])) :- !.
+bcnf_decomp_(R, F, [R], plan(R)) :- bcnf(R, F), !.
+bcnf_decomp_(R, F, Decomp, plan(R, X->Y, Plan0, Plan1)) :-
 	member(X->Y, F),
 	ord_subset(X, R),
 	ord_intersection(Y, R, YPrime),
@@ -110,9 +111,34 @@ bcnf_decomp_(R, F, Decomp) :-
 	ord_union([X, YPrime], XY),
 	ord_subtract(R, Y, RMinusY),
 	debug(bcnf_decomp, "splitting ~w on ~w: ~w", [R, X->Y, [XY,RMinusY]]),
-	bcnf_decomp_(XY, F, D0),
-	bcnf_decomp_(RMinusY, F, D1),
+	bcnf_decomp_(XY, F, D0, Plan0),
+	bcnf_decomp_(RMinusY, F, D1, Plan1),
 	ord_union(D0, D1, Decomp).
+
+
+%! write_bcnf_decomp(+Plan)
+% Write the BCNF decomposition plan in a human format.
+write_bcnf_decomp(Plan) :- write_bcnf_decomp_(Plan, 0).
+
+write_bcnf_decomp_(plan(Leaf), Depth) :-
+	write_bcnf_decomp_indent_(Depth),
+	format("- table: ~w\n", [Leaf]).
+
+write_bcnf_decomp_(plan(Attrs, X->Y, Left, Right), Depth) :-
+	write_bcnf_decomp_indent_(Depth),
+	format("- table: ~w\n", [Attrs]),
+	write_bcnf_decomp_indent_(Depth+1),
+	format("- violation: ~w -> ~w\n", [X,Y]),
+	write_bcnf_decomp_(Left, Depth+1),
+	write_bcnf_decomp_(Right, Depth+1).
+
+write_bcnf_decomp_indent_(0) :- !.
+write_bcnf_decomp_indent_(Depth) :-
+	write("  "),
+	Next is Depth - 1,
+	write_bcnf_decomp_indent_(Next).
+
+
 
 
 %! synthesize(+F, -Tables)
@@ -150,8 +176,6 @@ main :-
 		[cid] -> [commenttext, commenttime, uid, pid]
 	],
 
-	bcnf_decomp(F, Decomp),
-	format('BCNF Decomp: ~w\n', [Decomp]),
 	synthesize(F, Synth),
 	format('3NF Synthesis: ~w\n', [Synth]),
 	!.
