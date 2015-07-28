@@ -55,6 +55,21 @@ closure(Attrs, F, Closure) :-
 closure(Attrs, _, Attrs).
 
 
+%! key(+Attrs, +F, -Key)
+% True when `Key` functionally determines `Attrs` with respect to the functional
+% dependencies `F`.
+key(R, F, [X]) :-
+	member(X, R),
+	closure([X], F, Closure),
+	Closure == R.
+
+key(R, F, [X|Key]) :-
+	member(X, R),
+	closure([X], F, Closure),
+	ord_subtract(R, Closure, Next),
+	key(Next, F, Key).
+
+
 %! bcnf(+R, +F)
 % True when the relation `R` is in Boyce–Codd normal form with respect to the
 % functional dependencies `F`.
@@ -99,12 +114,42 @@ bcnf_decomp_(R, F, Decomp) :-
 	ord_union(D0, D1, Decomp).
 
 
+%! synthesize(+F, -Tables)
+% Generates a schema using 3NF synthesis with respect to the functional
+% dependencies in `F`.
+synthesize(F, Tables) :-
+	once(cover(F, Cover)),
+	flatten_fds(Cover, R),
+	findall(XY, (
+		select(X->Y, F, Rest),
+		ord_union(X, Y, XY),
+		\+ (
+			member(X1->Y1, Rest),
+			ord_union(X1, Y1, Other),
+			ord_subset(XY, Other)
+		)
+	), InitialTables),
+	(
+		member(Superkey, InitialTables),
+		closure(Superkey, Cover, Closure),
+		Closure = R,
+		Tables = InitialTables
+	->true;
+		once(key(R, Cover, Key)),
+		sort([Key|InitialTables], Tables)
+	).
+
+
 %! main(X)
 % Run a bcnf decomposition on our project data.
-main(X) :-
+main :-
 	F = [
 		[uid] -> [role, email, password],
-		[pid] -> [time, posttext, posttime],
+		[pid] -> [posttitle, posttext, posttime],
 		[cid] -> [commenttext, commenttime]
 	],
-	bcnf_decomp(F, X).
+	bcnf_decomp(F, Decomp),
+	format('BCNF Decomp: ~w\n', [Decomp]),
+	synthesize(F, Synth),
+	format('3NF Synthesis: ~w\n', [Synth]),
+	!.
