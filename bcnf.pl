@@ -99,15 +99,11 @@ bcnf_decomp_(R, F, Decomp) :-
 
 
 %! main(X)
-% Run the bcnf decomposition example from the textbook.
-% X is the result of decomposition.
+% Run a bcnf decomposition on our project data.
 main(X) :-
-	R = [a,b,c,d,e,f,g,h],
 	F = [
-		[a,b,h] -> [c],
-		[a]     -> [d,e],
-		[b,g,h] -> [f],
-		[f]     -> [a,d,h],
-		[b,h]   -> [e,g]
+		[uid] -> [role, email, password],
+		[pid] -> [time, posttext, posttime],
+		[cid] -> [commenttext, commenttime]
 	],
-	bcnf_decomp(R, F, X).
+	bcnf_decomp(F, X).
