@@ -81,61 +81,49 @@ key(Attrs, F, Key) :-
 key(Attrs, _, Attrs).
 
 
-%! bcnf(+R, +F)
-% True when the relation `R` is in Boyce–Codd normal form with respect to the
-% functional dependencies `F`.
-bcnf(R, F) :-
-	forall(member(X->Y, F), (
-		ord_subset(X, R),
-		ord_intersection(Y, R, [_|_])
-	->
-		closure(X, F, XClose),
-		ord_subset(R, XClose)
-	;
-		true
-	)).
-
-
-%! bcnf_decomp(+F, -Decomp, -Plan)
+%! bcnf_decomp(+F, -Schema, -Plan)
 % Generates a schema using BCNF decomposition with respect to the functional
 % dependencies in `F`. `Plan` is a compound describing the decomposition
 % process. Use `write_bcnf_decomp/1` to write the plan in a human format.
-bcnf_decomp(F, Decomp, Plan) :-
-	% a minimal cover isn't strictly needed, but the generated cover is
-	% guaranteed to be sorted, so we can use ordered set operations.
-	once(cover(F, Cover)),
+bcnf_decomp(F, Schema, plan(Schema, Cover, DecompTree)) :-
+	% a minimal cover isn't strictly needed, but the generated cover is sorted
+	% thus we can use ordered set operations for efficiency
+	cover(F, Cover),
 	flatten_fds(Cover, R),
-	bcnf_decomp_(R, Cover, Decomp, Plan).
+	bcnf_decomp_(R, Cover, Schema, DecompTree).
 
-bcnf_decomp_([], _, [[]], plan([])) :- !.
-bcnf_decomp_([X], _, [[X]], plan([X])) :- !.
-bcnf_decomp_([X,Y], _, [[X,Y]], plan([X,Y])) :- !.
-bcnf_decomp_(R, F, [R], plan(R)) :- bcnf(R, F), !.
-bcnf_decomp_(R, F, Decomp, plan(R, X->Y, Plan0, Plan1)) :-
-	member(X->_, F),
-	closure(X, F, Y),
+bcnf_decomp_([], _, [[]], leaf([])) :- !.
+bcnf_decomp_([X], _, [[X]], leaf([X])) :- !.
+bcnf_decomp_([X,Y], _, [[X,Y]], leaf([X,Y])) :- !.
+bcnf_decomp_(R, F, Schema, node(R, X->Y, Plan0, Plan1)) :-
+	member(X->Y, F),
 	ord_subset(X, R),
-	ord_intersection(Y, R, YPrime),
-	YPrime \= [],
-	closure(X, F, XClose),
-	\+ ord_subset(R, XClose),
-	ord_union([X, YPrime], XY),
-	ord_subtract(Y, X, YMinusX),
-	ord_subtract(R, YMinusX, RMinusY),
+	member(Z, Y),
+	member(Z, R),
+	closure(X, F, Closure),
+	\+ ord_subset(R, Closure),
+	!,
+	ord_union(X, Y, XY),
 	bcnf_decomp_(XY, F, D0, Plan0),
-	bcnf_decomp_(RMinusY, F, D1, Plan1),
-	ord_union(D0, D1, Decomp).
+	append(D0, D1, Schema),
+	ord_subtract(R, Y, RMinusY),
+	bcnf_decomp_(RMinusY, F, D1, Plan1).
+bcnf_decomp_(R, _, [R], leaf(R)).
 
 
 %! write_bcnf_decomp(+Plan)
 % Write the BCNF decomposition plan in a human format.
-write_bcnf_decomp(Plan) :- write_bcnf_decomp_(Plan, 0).
+write_bcnf_decomp(plan(Schema, Cover, DecompTree)) :-
+	format("Schema: ~w\n", [Schema]),
+	format("Dependencies: ~w\n", [Cover]),
+	format("Decomposition:\n"),
+	write_bcnf_decomp_(DecompTree, 1).
 
-write_bcnf_decomp_(plan(Leaf), Depth) :-
+write_bcnf_decomp_(leaf(Leaf), Depth) :-
 	write_bcnf_decomp_indent_(Depth),
 	format("- table: ~w\n", [Leaf]).
 
-write_bcnf_decomp_(plan(Attrs, X->Y, Left, Right), Depth) :-
+write_bcnf_decomp_(node(Attrs, X->Y, Left, Right), Depth) :-
 	write_bcnf_decomp_indent_(Depth),
 	format("- table: ~w\n", [Attrs]),
 	write_bcnf_decomp_indent_(Depth+1),
@@ -200,10 +188,9 @@ main :-
 		[b,h] -> [g,e]
 	],
 
-	bcnf_decomp(F, Decomp, DecompPlan),
-	format("BCNF Decomp:\n"),
+	format("# BCNF Decomposition\n"),
+	bcnf_decomp(F, _, DecompPlan),
 	write_bcnf_decomp(DecompPlan),
-	format("Result: ~w\n", [Decomp]),
 
 	nl,
 
