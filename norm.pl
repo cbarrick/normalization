@@ -184,9 +184,11 @@ write_synthesis(plan(Cover, InitialTables, Key, Tables)) :-
 % Run a bcnf decomposition on our project data.
 main :-
 	F = [
-		[uid] -> [role, email, password],
-		[pid] -> [posttitle, posttext, posttime, uid],
-		[cid] -> [commenttext, commenttime, uid, pid]
+		[a,b,h] -> [c],
+		[a] -> [d,e],
+		[b,g,h] -> [f],
+		[f] -> [a,d,h],
+		[b,h] -> [g,e]
 	],
 
 	bcnf_decomp(F, Decomp, DecompPlan),
