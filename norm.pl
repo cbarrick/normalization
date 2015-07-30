@@ -64,7 +64,6 @@ closure(Attrs, F, Closure) :-
 	!,
 	ord_union(Attrs, Y, Next),
 	closure(Next, F, Closure).
-
 closure(Attrs, _, Attrs).
 
 
@@ -77,7 +76,6 @@ key(Attrs, F, Key) :-
 	ord_subset(Attrs, Closure),
 	!,
 	key(Rest, F, Key).
-
 key(Attrs, _, Attrs).
 
 
@@ -138,43 +136,37 @@ write_bcnf_decomp_indent_(Depth) :-
 	write_bcnf_decomp_indent_(Next).
 
 
-
-
 %! synthesis(+F, -Tables, -Plan)
 % Generates a schema using 3NF synthesis with respect to the functional
 % dependencies in `F`. `Plan` is a compound describing the synthesis
 % process. Use `write_synthesis/1` to write the plan in a human format.
-synthesis(F, Tables, plan(Cover, InitialTables, Key, Tables)) :-
-	once(cover(F, Cover)),
-	flatten_fds(Cover, R),
+synthesis(F, Tables, plan(Cover, InitialTables, Key)) :-
+	% synthesize tables
+	cover(F, Cover),
 	findall(XY, (
 		select(X->Y, Cover, Rest),
-		ord_union(X, Y, XY),
-		\+ (
-			member(X1->Y1, Rest),
-			ord_union(X1, Y1, Other),
-			ord_subset(XY, Other)
-		)
+		ord_union(X, Y, XY)
 	), InitialTables),
+
+	% check for losslessness
+	% if the initial tables are lossy, include an extra key table
+	flatten_fds(Cover, R),
 	(
-		member(Superkey, InitialTables),
-		closure(Superkey, Cover, Closure),
-		Closure = R,
-		Key = Superkey,
+		member(Key, InitialTables),
+		closure(Key, Cover, R),
 		Tables = InitialTables
 	->true;
-		once(key(R, Cover, Key)),
-		sort([Key|InitialTables], Tables)
+		key(R, Cover, Key),
+		ord_union(InitialTables, [Key], Tables)
 	).
 
 
 %! write_synthesis(+Plan)
 % Write the 3NF synthesis plan in a human format.
-write_synthesis(plan(Cover, InitialTables, Key, Tables)) :-
-	format("Minimal cover:\n\t~w\n", [Cover]),
-	format("Initial Tables:\n\t~w\n", [InitialTables]),
-	format("Global Key:\n\t~w\n", [Key]),
-	format("Tables:\n\t~w\n", [Tables]).
+write_synthesis(plan(Cover, InitialTables, Key)) :-
+	format("Minimal cover:\t~w\n", [Cover]),
+	format("Initial Tables:\t~w\n", [InitialTables]),
+	format("Global Key:\t~w\n", [Key]).
 
 
 %! main(X)
@@ -194,7 +186,6 @@ main :-
 
 	nl,
 
-	synthesis(F, Synth, SynthPlan),
-	format("3NF Synthesis:\n", [Synth]),
-	write_synthesis(SynthPlan),
-	!.
+	format("# 3NF Synthesis\n"),
+	synthesis(F, _, SynthPlan),
+	write_synthesis(SynthPlan).
