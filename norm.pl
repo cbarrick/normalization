@@ -6,33 +6,42 @@
 %! cover(+F, -Cover)
 % Generates a normalized minimal cover of the functional dependencies `F`.
 cover(F, Minimal) :-
-	% normalize F, ensuring right-hand-sides are sorted
-	findall(X->Y, (
-		member(Z->Y, F),
-		list_to_ord_set(Z, X)
-	), NormalF),
+	% normalize elements of F by sorting
+	setof(X->Y, W^Z^(
+		member(W->Z, F),
+		sort(W, X),
+		sort(Z, Y)
+	), A),
 
-	% expand the right-hand-sides into singletons
-	setof(X->[Y], Z^(
-		member(X->Z, NormalF),
-		member(Y, Z)
-	), Singleton),
-
-	% eliminate extraneous rules
+	% decompose the right-hand-sides into singletons
 	findall(X->[Y], (
-		select(X->[Y], Singleton, Rest),
-		closure(X, F, XClose),
-		\+ (
-			member(Key->_, Rest),
-			ord_subset(Key, XClose),
-			closure(Key, Rest, KClose),
-			ord_subset(XClose, KClose)
-		)
-	), MinimalSingleton),
+		member(X->Z, A),
+		member(Y, Z),
+		\+ ord_memberchk(Y, X)
+	), B),
 
-	% merge right-hand-sides, ensuring they are sorted
+	% minimize left-hand-sides
+	findall(X->[Y], (
+		member(Z->[Y], B),
+		findall(W, (
+			select(W, Z, Rest),
+			closure(Rest, B, Closure),
+			\+ member(Y, Closure)
+		), X)
+	), C),
+
+	% eliminate redundant rules
+	findall(X->[Y], (
+		select(X->[Y], C, Rest),
+		\+ (
+			closure(X, C, Closure),
+			closure(X, Rest, Closure)
+		)
+	), D),
+
+	% recombine rules
 	findall(X->Y, (
-		setof(Z, member(X->[Z], MinimalSingleton), Y)
+		setof(Z, member(X->[Z], D), Y)
 	), Minimal).
 
 
