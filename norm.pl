@@ -1,4 +1,4 @@
-#!/usr/bin/env swipl -g main -t halt
+#!/usr/bin/env swipl -g norm_example -t halt
 
 :- use_module(library(ordsets)).
 
@@ -112,39 +112,39 @@ bcnf_decomp_(R, _, [R], leaf(R)).
 %! write_bcnf_decomp(+Plan)
 % Write the BCNF decomposition plan in a human format.
 write_bcnf_decomp(plan(Schema, Cover, DecompTree)) :-
-	format("Schema: ~w\n", [Schema]),
-	format("Dependencies: ~w\n", [Cover]),
-	format("Decomposition:\n"),
-	write_bcnf_decomp_(DecompTree, 1).
+	format("- Schema:\t`~w`\n", [Schema]),
+	format("- Dependencies:\t`~w`\n", [Cover]),
+	format("- Decomposition:\n"),
+	format("```\n"),
+	write_bcnf_decomp_(DecompTree, 0),
+	format("```\n").
 
-write_bcnf_decomp_(leaf(Leaf), Depth) :-
-	write_bcnf_decomp_indent_(Depth),
-	format("- table: ~w\n", [Leaf]).
+write_bcnf_decomp_(leaf(Leaf), _) :-
+	format("~w\n", [Leaf]).
 
 write_bcnf_decomp_(node(Attrs, X->Y, Left, Right), Depth) :-
-	write_bcnf_decomp_indent_(Depth),
-	format("- table: ~w\n", [Attrs]),
-	write_bcnf_decomp_indent_(Depth+1),
-	format("- violation: ~w -> ~w\n", [X,Y]),
-	write_bcnf_decomp_(Left, Depth+1),
-	write_bcnf_decomp_(Right, Depth+1).
-
-write_bcnf_decomp_indent_(0) :- !.
-write_bcnf_decomp_indent_(Depth) :-
-	write("  "),
-	Next is Depth - 1,
-	write_bcnf_decomp_indent_(Next).
+	Less is Depth-1,
+	More is Depth+1,
+	format("~w\n", [Attrs]),
+	forall(between(0, Less, _), write("    ")),
+	format("├── violation: ~w\n", [X->Y]),
+	forall(between(0, Less, _), write("    ")),
+	format("├── "),
+	write_bcnf_decomp_(Left, More),
+	forall(between(0, Less, _), write("    ")),
+	format("└── "),
+	write_bcnf_decomp_(Right, More).
 
 
 %! synthesis(+F, -Tables, -Plan)
 % Generates a schema using 3NF synthesis with respect to the functional
 % dependencies in `F`. `Plan` is a compound describing the synthesis
 % process. Use `write_synthesis/1` to write the plan in a human format.
-synthesis(F, Tables, plan(Cover, InitialTables, Key)) :-
+synthesis(F, Tables, plan(Tables, Cover, Key)) :-
 	% synthesize tables
 	cover(F, Cover),
 	findall(XY, (
-		select(X->Y, Cover, Rest),
+		member(X->Y, Cover),
 		ord_union(X, Y, XY)
 	), InitialTables),
 
@@ -163,15 +163,15 @@ synthesis(F, Tables, plan(Cover, InitialTables, Key)) :-
 
 %! write_synthesis(+Plan)
 % Write the 3NF synthesis plan in a human format.
-write_synthesis(plan(Cover, InitialTables, Key)) :-
-	format("Minimal cover:\t~w\n", [Cover]),
-	format("Initial Tables:\t~w\n", [InitialTables]),
-	format("Global Key:\t~w\n", [Key]).
+write_synthesis(plan(Tables, Cover, Key)) :-
+	format("- Schema:\t`~w`\n", [Tables]),
+	format("- Dependencies:\t`~w`\n", [Cover]),
+	format("- Global Key:\t`~w`\n", [Key]).
 
 
-%! main(X)
-% Run a bcnf decomposition on our project data.
-main :-
+%! norm_example(X)
+% Run a bcnf decomposition on example data.
+norm_example :-
 	F = [
 		[a,b,h] -> [c],
 		[a] -> [d,e],
